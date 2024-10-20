@@ -1,0 +1,19 @@
+[tool.isort]
+profile = "black"
+known_third_party = ["pyspark", "dotenv"]
+known_local_folder = ["scripts"]
+line_length = 88
+
+[tool.flake8]
+max-line-length = 88
+exclude = [
+    ".git",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "migrations"
+]
+ignore = [
+    "E203",  # Whitespaces antes de ':' (usado por isort)
+    "W503"   # Linha que quebra antes do operador binário
+]

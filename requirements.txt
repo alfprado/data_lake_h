@@ -1,3 +1,4 @@
 pyspark==3.5.3
 pytest==6.2.4
 unittest2==1.1.0
+load-dotenv==0.1.0

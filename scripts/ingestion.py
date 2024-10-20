@@ -1,25 +1,39 @@
+import logging
 import os
-import zipfile
 import shutil
+import zipfile
 from datetime import datetime
+
+from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit
-import logging
+
+load_dotenv()
+
+today = datetime.now()
+
+spark_master = os.getenv("SPARK_MASTER")
+zip_file_path = os.getenv("ZIP_FILE_PATH")
+stage_path = os.getenv("STAGE_PATH")
+raw_path = os.getenv("RAW_PATH")
+history_path = f"{os.getenv('HISTORY_PATH')}{today.strftime('%Y%m%d')}"
 
 logging.basicConfig(
-    filename='logs/ingestion.log',
+    filename="logs/ingestion.log",
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
+
 
 def add_dt_carga(df, carga_date):
     """Add DT_CARGA column to DataFrame."""
     return df.withColumn("DT_CARGA", lit(carga_date))
 
+
 def extract_zip(zip_path, extract_to):
     """Extract files from a zip archive."""
     try:
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(extract_to)
         logging.info(f"Files successfully extracted from {zip_path} to {extract_to}")
     except FileNotFoundError as e:
@@ -28,6 +42,7 @@ def extract_zip(zip_path, extract_to):
         logging.error(f"Error reading the zip file: {e}")
     except Exception as e:
         logging.error(f"Unknown error during zip extraction: {e}")
+
 
 def move_to_history(source_dir, history_dir):
     """Move files to the history directory."""
@@ -47,24 +62,19 @@ def move_to_history(source_dir, history_dir):
     except Exception as e:
         logging.error(f"Unknown error moving files to history: {e}")
 
+
 def ingest_data():
     """Main process to handle data ingestion."""
-    spark = SparkSession.builder \
-        .appName("Data Lake Ingestion") \
-        .master(os.getenv("SPARK_MASTER", "local[*]")) \
+    spark = (
+        SparkSession.builder.appName("Data Lake Ingestion")
+        .master(spark_master)
         .getOrCreate()
-
-    today = datetime.now()
-
-    zip_file_path = os.getenv("ZIP_FILE_PATH", "data/source/EINSTEINAgosto.zip")
-    stage_path = os.getenv("STAGE_PATH", "data/stage")
-    raw_path = os.getenv("RAW_PATH", "data/raw")
-    history_path = os.getenv("HISTORY_PATH", f"{stage_path}/history/{today.strftime('%Y%m%d')}")
+    )
 
     extract_zip(zip_file_path, stage_path)
 
     try:
-        csv_files = [f for f in os.listdir(stage_path) if f.endswith('.csv')]
+        csv_files = [f for f in os.listdir(stage_path) if f.endswith(".csv")]
     except FileNotFoundError as e:
         logging.error(f"Directory not found: {e}")
         csv_files = []
@@ -73,13 +83,21 @@ def ingest_data():
         try:
             csv_file_path = os.path.join(stage_path, csv_file)
 
-            df = spark.read.option("header", "true").option("sep", "|").csv(csv_file_path)
+            df = (
+                spark.read.option("header", "true")
+                .option("sep", "|")
+                .csv(csv_file_path)
+            )
 
             df = add_dt_carga(df, today.date())
 
-            output_path = os.path.join(raw_path, os.path.splitext(csv_file)[0].split('_')[1].lower())
+            output_path = os.path.join(
+                raw_path, os.path.splitext(csv_file)[0].split("_")[1].lower()
+            )
 
-            df.coalesce(1).write.mode("overwrite").option("compression", "snappy").parquet(output_path)
+            df.coalesce(1).write.mode("overwrite").option(
+                "compression", "snappy"
+            ).parquet(output_path)
             logging.info(f"File {csv_file} processed and saved to {output_path}")
         except Exception as e:
             logging.error(f"Error processing file {csv_file}: {e}")
@@ -87,6 +105,7 @@ def ingest_data():
     move_to_history(stage_path, history_path)
 
     spark.stop()
+
 
 if __name__ == "__main__":
     ingest_data()

@@ -1,11 +1,12 @@
-import unittest
-from unittest.mock import patch, MagicMock
+import logging
 import os
 import tempfile
+import unittest
 from datetime import datetime
-from pyspark.sql import SparkSession
-from pyspark.sql import Row
-import logging
+from unittest.mock import MagicMock, patch
+
+from pyspark.sql import Row, SparkSession
+
 from scripts.ingestion import add_dt_carga, extract_zip, move_to_history
 
 
@@ -14,10 +15,11 @@ class TestDataIngestion(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up a Spark session for testing."""
-        cls.spark = SparkSession.builder \
-            .appName("DataIngestionTest") \
-            .master("local[*]") \
+        cls.spark = (
+            SparkSession.builder.appName("DataIngestionTest")
+            .master("local[*]")
             .getOrCreate()
+        )
 
     @classmethod
     def tearDownClass(cls):
@@ -34,7 +36,7 @@ class TestDataIngestion(unittest.TestCase):
 
     def test_add_dt_carga(self):
         """Test that the DT_CARGA column is added correctly."""
-        data = [Row(id=1, name='Alice'), Row(id=2, name='Bob')]
+        data = [Row(id=1, name="Alice"), Row(id=2, name="Bob")]
         df = self.spark.createDataFrame(data)
         carga_date = datetime.now().date()
 
