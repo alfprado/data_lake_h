@@ -1,0 +1,14 @@
+version: '3'
+services:
+  data_pipeline:
+    build: .
+    volumes:
+      - ./data:/app/data
+    environment:
+      - SPARK_HOME=/opt/spark-3.5.3-bin-hadoop3
+      - ZIP_FILE_PATH=/app/data/source/EINSTEINAgosto.zip
+      - STAGE_PATH=/app/data/stage
+      - RAW_PATH=/app/data/raw
+      - HISTORY_PATH=/app/data/stage/history
+      - SPARK_MASTER=local[*]
+    command: python3 main.py
