@@ -1,83 +1,67 @@
 import logging
 import os
 import tempfile
-import unittest
 from datetime import datetime
 from unittest.mock import MagicMock, patch
-
+import pytest
 from pyspark.sql import Row, SparkSession
 
-from scripts.ingestion import add_dt_carga, extract_zip, move_to_history
+from ingestion_pipeline import add_dt_carga, extract_zip, move_to_history
 
+@pytest.fixture(scope="module")
+def spark():
+    """Cria uma sessão Spark para os testes."""
+    spark = SparkSession.builder.appName("DataIngestionTest").master("local[*]").getOrCreate()
+    yield spark
+    spark.stop()
 
-class TestDataIngestion(unittest.TestCase):
+@pytest.fixture(autouse=True)
+def disable_logging():
+    """Desabilita logs durante os testes."""
+    logging.disable(logging.CRITICAL)
+    yield
+    logging.disable(logging.NOTSET)
 
-    @classmethod
-    def setUpClass(cls):
-        """Set up a Spark session for testing."""
-        cls.spark = (
-            SparkSession.builder.appName("DataIngestionTest")
-            .master("local[*]")
-            .getOrCreate()
-        )
+def test_add_dt_carga(spark):
+    """Testa se a coluna DT_CARGA é adicionada corretamente."""
+    data = [Row(id=1, name="Alice"), Row(id=2, name="Bob")]
+    df = spark.createDataFrame(data)
+    carga_date = datetime.now().date()
 
-    @classmethod
-    def tearDownClass(cls):
-        """Stop Spark session after tests."""
-        cls.spark.stop()
+    df_with_carga = add_dt_carga(df, carga_date)
 
-    def setUp(self):
-        """Disable logging before each test."""
-        logging.disable(logging.CRITICAL)
+    # Verifica se a coluna foi adicionada
+    assert "DT_CARGA" in df_with_carga.columns
 
-    def tearDown(self):
-        """Re-enable logging after each test."""
-        logging.disable(logging.NOTSET)
+    # Verifica se o valor da coluna é correto
+    result = df_with_carga.select("DT_CARGA").collect()[0][0]
+    assert result == carga_date
 
-    def test_add_dt_carga(self):
-        """Test that the DT_CARGA column is added correctly."""
-        data = [Row(id=1, name="Alice"), Row(id=2, name="Bob")]
-        df = self.spark.createDataFrame(data)
-        carga_date = datetime.now().date()
+@patch("ingestion_pipeline.zipfile.ZipFile")
+def test_extract_zip(mock_zipfile):
+    """Testa se a função extract_zip extrai os arquivos corretamente."""
+    mock_zip = MagicMock()
+    mock_zipfile.return_value.__enter__.return_value = mock_zip
 
-        df_with_carga = add_dt_carga(df, carga_date)
+    extract_zip("fake_path.zip", "fake_extract_to")
 
-        # Check if the column was added
-        self.assertIn("DT_CARGA", df_with_carga.columns)
+    mock_zip.extractall.assert_called_once_with("fake_extract_to")
 
-        # Verify that the column has the correct value
-        result = df_with_carga.select("DT_CARGA").collect()[0][0]
-        self.assertEqual(result, carga_date)
+def test_move_to_history():
+    """Testa se os arquivos são movidos corretamente para o diretório de histórico."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        source_dir = os.path.join(temp_dir, "source")
+        history_dir = os.path.join(temp_dir, "history")
 
-    @patch("scripts.ingestion.zipfile.ZipFile")
-    def test_extract_zip(self, mock_zipfile):
-        """Test that the extract_zip function correctly extracts files."""
-        mock_zip = MagicMock()
-        mock_zipfile.return_value.__enter__.return_value = mock_zip
+        os.makedirs(source_dir, exist_ok=True)
+        with open(os.path.join(source_dir, "test_file.csv"), "w") as f:
+            f.write("test")
 
-        extract_zip("fake_path.zip", "fake_extract_to")
+        move_to_history(source_dir, history_dir)
 
-        mock_zip.extractall.assert_called_once_with("fake_extract_to")
+        # Verifica se o arquivo foi movido para o diretório de histórico
+        assert os.path.exists(history_dir)
+        assert os.path.exists(os.path.join(history_dir, "test_file.csv"))
 
-    def test_move_to_history(self):
-        """Test that files are correctly moved to the history directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            source_dir = os.path.join(temp_dir, "source")
-            history_dir = os.path.join(temp_dir, "history")
-
-            os.makedirs(source_dir, exist_ok=True)
-            with open(os.path.join(source_dir, "test_file.csv"), "w") as f:
-                f.write("test")
-
-            move_to_history(source_dir, history_dir)
-
-            # Check if the file was moved to the history directory
-            self.assertTrue(os.path.exists(history_dir))
-            self.assertTrue(os.path.exists(os.path.join(history_dir, "test_file.csv")))
-
-            # Check if the file was removed from the source directory
-            self.assertFalse(os.path.exists(os.path.join(source_dir, "test_file.csv")))
-
-
-if __name__ == "__main__":
-    unittest.main()
+        # Verifica se o arquivo foi removido do diretório de origem
+        assert not os.path.exists(os.path.join(source_dir, "test_file.csv"))

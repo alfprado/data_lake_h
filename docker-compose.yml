@@ -11,4 +11,5 @@ services:
       - RAW_PATH=/app/data/raw
       - HISTORY_PATH=/app/data/stage/history
       - SPARK_MASTER=local[*]
+      - CURATED_PATH=/app/data/curated
     command: python3 main.py
