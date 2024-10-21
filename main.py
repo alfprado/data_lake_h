@@ -14,26 +14,16 @@ load_dotenv()
 
 # Configure logging
 logging.basicConfig(
-    filename="logs/pipeline.log",
+    # filename="logs/pipeline.log",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
-def get_config():
-    """Fetch configuration from environment variables."""
+def get_common_config():
+    """Fetch configuration from environment variables"""
     today = datetime.now()
-
-    spark = (
-        SparkSession.builder.appName("Data Pepeline")
-        .config("spark.executor.memory", "4g")
-        .config("spark.driver.memory", "4g")
-        .master(os.getenv("SPARK_MASTER"))
-        .getOrCreate()
-    )
-
     config = {
-        "spark": spark,
         "zip_file_path": os.getenv("ZIP_FILE_PATH"),
         "stage_path": os.getenv("STAGE_PATH"),
         "raw_path": os.getenv("RAW_PATH"),
@@ -50,29 +40,46 @@ def get_config():
     return config
 
 
+def create_spark_session(app_name):
+    """Create a Spark session with common configurations."""
+    return (
+        SparkSession.builder.appName(app_name)
+        .config("spark.executor.memory", "4g")
+        .config("spark.driver.memory", "4g")
+        .master(os.getenv("SPARK_MASTER"))
+        .getOrCreate()
+    )
+
+
 def run():
     try:
         logging.info("Starting pipeline execution...")
 
-        # Get configuration
-        config = get_config()
+        # Get common configuration
+        config = get_common_config()
 
         # Run Ingestion
         logging.info("Starting ingestion pipeline...")
-        ingestion = DataIngestion(**config)
-        ingestion.ingestion_to_raw()
+        with create_spark_session("Data Ingestion") as spark:
+            ingestion_config = {**config, "spark": spark}
+            ingestion = DataIngestion(**ingestion_config)
+            ingestion.ingestion_to_raw()
         logging.info("Ingestion pipeline completed successfully.")
 
         # Run Normalization
         logging.info("Starting normalization pipeline...")
-        normalize = DataNormalization(**config)
-        normalize.normalize()
+        with create_spark_session("Data Normalization") as spark:
+            normalization_config = {**config, "spark": spark}
+            normalize = DataNormalization(**normalization_config)
+            normalize.normalize()
         logging.info("Normalization pipeline completed successfully.")
 
         # Run Transform
-        logging.info("Starting trasnform pipeline...")
-        transform = DataTransformation(**config)
-        transform.transform()
+        logging.info("Starting transform pipeline...")
+        with create_spark_session("Data Transformation") as spark:
+            transform_config = {**config, "spark": spark}
+            transform = DataTransformation(**transform_config)
+            transform.transform()
         logging.info("Transform pipeline completed successfully.")
 
     except ValueError as ve:

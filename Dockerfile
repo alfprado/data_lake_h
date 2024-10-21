@@ -3,7 +3,7 @@ FROM openjdk:8-jdk-slim
 
 # Install Python and dependencies
 RUN apt-get update && \
-    apt-get install -y python3-pip python3 wget && \
+    apt-get install -y python3-pip python3 wget procps && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean
 
@@ -19,5 +19,8 @@ COPY . /app
 # Install Python dependencies
 RUN pip3 install --no-cache-dir -r /app/requirements.txt
 
-# Entrypoint to run the main script
-ENTRYPOINT ["python3", "main.py"]
+# Define entrypoint to use Python
+ENTRYPOINT ["python3"]
+
+# Default command for running the main script
+CMD ["main.py"]

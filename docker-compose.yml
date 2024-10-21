@@ -1,4 +1,4 @@
-version: '3'
+version: '3.7'
 services:
   data_pipeline:
     build: .
@@ -14,4 +14,15 @@ services:
       - SPARK_MASTER=local[*]
       - CURATED_PATH=/app/data/curated
       - SERVICE_PATH=/app/data/service
-    command: python3 main.py
+    command: ["main.py", "&&", "touch", "/app/data/finished_pipeline"]
+
+  data_visualization:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+    environment:
+      - SERVICE_PATH=/app/data/service
+    depends_on:
+      - data_pipeline
+    command: ["scripts/visualization.py", "--service-path", "/app/data/service"]

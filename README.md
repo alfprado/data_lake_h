@@ -110,3 +110,29 @@ flowchart LR
 
 **Resultado esperado**:
 - Histograma mostrando quantidade de registros por `DE_ANALITO` a partir dos dados na pasta `exames_por_pacientes_sp` na camada Service.
+
+
+## Como Executar:
+
+### Para executar o docker-compose com ambos os serviços:
+
+Para executar o pipeline principal e gerar os dados:
+
+```bash
+docker-compose up data_pipeline
+```
+
+Para executar o script de visualização e gerar o gráfico:
+
+```bash
+docker-compose up data_visualization
+```
+
+Para executar ambos os serviços juntos:
+
+```bash
+docker-compose up
+```
+
+Após a execução, o gráfico gerado (histogram.png) deve estar disponível no diretório output no host.
+
