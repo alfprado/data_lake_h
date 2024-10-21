@@ -3,9 +3,11 @@ import os
 from datetime import datetime
 
 from dotenv import load_dotenv
+from pyspark.sql import SparkSession
 
-from scripts.ingestion_pipeline import IngestionPipeline
-from scripts.normalize_pipeline import NormalizePipeline
+from scripts.ingestion import DataIngestion
+from scripts.normalization import DataNormalization
+from scripts.transformation import DataTransformation
 
 # Load environment variables
 load_dotenv()
@@ -22,12 +24,21 @@ def get_config():
     """Fetch configuration from environment variables."""
     today = datetime.now()
 
+    spark = (
+        SparkSession.builder.appName("Data Pepeline")
+        .config("spark.executor.memory", "4g")
+        .config("spark.driver.memory", "4g")
+        .master(os.getenv("SPARK_MASTER"))
+        .getOrCreate()
+    )
+
     config = {
-        "spark_master": os.getenv("SPARK_MASTER"),
+        "spark": spark,
         "zip_file_path": os.getenv("ZIP_FILE_PATH"),
         "stage_path": os.getenv("STAGE_PATH"),
         "raw_path": os.getenv("RAW_PATH"),
         "curated_path": os.getenv("CURATED_PATH"),
+        "service_path": os.getenv("SERVICE_PATH"),
         "history_path": f"{os.getenv('HISTORY_PATH')}-{today.strftime('%Y%m%d')}",
     }
 
@@ -39,7 +50,7 @@ def get_config():
     return config
 
 
-def run_pipeline():
+def run():
     try:
         logging.info("Starting pipeline execution...")
 
@@ -48,15 +59,21 @@ def run_pipeline():
 
         # Run Ingestion
         logging.info("Starting ingestion pipeline...")
-        ingestion_pipeline = IngestionPipeline(**config)
-        ingestion_pipeline.ingestion_to_raw()
+        ingestion = DataIngestion(**config)
+        ingestion.ingestion_to_raw()
         logging.info("Ingestion pipeline completed successfully.")
 
         # Run Normalization
         logging.info("Starting normalization pipeline...")
-        normalize_pipeline = NormalizePipeline(**config)
-        normalize_pipeline.normalize()
+        normalize = DataNormalization(**config)
+        normalize.normalize()
         logging.info("Normalization pipeline completed successfully.")
+
+        # Run Transform
+        logging.info("Starting trasnform pipeline...")
+        transform = DataTransformation(**config)
+        transform.transform()
+        logging.info("Transform pipeline completed successfully.")
 
     except ValueError as ve:
         logging.error(f"Configuration error: {ve}")
@@ -67,4 +84,4 @@ def run_pipeline():
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    run()

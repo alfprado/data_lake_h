@@ -4,6 +4,7 @@ services:
     build: .
     volumes:
       - ./data:/app/data
+      - ./logs:/app/logs
     environment:
       - SPARK_HOME=/opt/spark-3.5.3-bin-hadoop3
       - ZIP_FILE_PATH=/app/data/source/EINSTEINAgosto.zip
@@ -12,4 +13,5 @@ services:
       - HISTORY_PATH=/app/data/stage/history
       - SPARK_MASTER=local[*]
       - CURATED_PATH=/app/data/curated
+      - SERVICE_PATH=/app/data/service
     command: python3 main.py

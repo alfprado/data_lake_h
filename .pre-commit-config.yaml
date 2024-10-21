@@ -4,16 +4,16 @@ repos:
     hooks:
       - id: isort
         args: ["--profile=black"]
-
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
-    hooks:
-      - id: flake8
   
   - repo: https://github.com/psf/black
     rev: 23.1.0
     hooks:
       - id: black
         name: Run Black formatter
-        language_version: python3.9
+        language_version: python3.10
         args: ["--line-length=88"]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 5.0.0
+    hooks:
+      - id: flake8

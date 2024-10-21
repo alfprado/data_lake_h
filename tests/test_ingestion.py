@@ -5,7 +5,7 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-from ingestion_pipeline import add_dt_carga, extract_zip, move_to_history
+from ingestion import add_dt_carga, extract_zip, move_to_history
 from pyspark.sql import Row, SparkSession
 
 
@@ -45,7 +45,7 @@ def test_add_dt_carga(spark):
     assert result == carga_date
 
 
-@patch("ingestion_pipeline.zipfile.ZipFile")
+@patch("ingestion.zipfile.ZipFile")
 def test_extract_zip(mock_zipfile):
     """Tests if the extract_zip function extracts files correctly."""
     mock_zip = MagicMock()

@@ -20,11 +20,11 @@ jobs:
     steps:
       # Checkout do repositório
       - name: Checkout the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # Configuração do Python
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.9
 
@@ -39,4 +39,4 @@ jobs:
       - name: Run Unit Tests
         run: |
           source venv/bin/activate
-          python -m unittest discover -s tests
+          pytest -v

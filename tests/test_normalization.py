@@ -2,10 +2,10 @@ import datetime
 import os
 
 import pytest
-from normalize_pipeline import NormalizePipeline
+from normalization import DataNormalization
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, trim, udf
-from pyspark.sql.types import DateType, IntegerType, StringType, StructField, StructType
+from pyspark.sql.functions import col, trim
+from pyspark.sql.types import DateType, StringType, StructField, StructType
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +30,16 @@ def mock_env(monkeypatch):
 def df_patient(spark):
     """Creates a mock DataFrame for Patients for testing."""
     data = [
-        ("123", "M", "AAAA", "BR", "MG", None, "CCCC", datetime.date(2023, 10, 20)),
+        (
+            "123",
+            "M",
+            "AAAA",
+            "BR",
+            "MG",
+            None,
+            "CCCC",
+            datetime.date(2023, 10, 20),
+        ),
         (
             "124",
             "M",
@@ -41,9 +50,27 @@ def df_patient(spark):
             "CCCC",
             datetime.date(2023, 10, 20),
         ),
-        (None, "F", 1985, "XX", "SP", "MMMM", "05652900", datetime.date(2023, 10, 20)),
+        (
+            None,
+            "F",
+            1985,
+            "XX",
+            "SP",
+            "MMMM",
+            "05652900",
+            datetime.date(2023, 10, 20),
+        ),
         ("", "M", None, "", "SP", "MMMM", None, datetime.date(2023, 10, 20)),
-        (None, "F", 1985, "XX", "SP", "", "05652900", datetime.date(2023, 10, 20)),
+        (
+            None,
+            "F",
+            1985,
+            "XX",
+            "SP",
+            "",
+            "05652900",
+            datetime.date(2023, 10, 20),
+        ),
     ]
     schema = StructType(
         [
@@ -147,7 +174,7 @@ def test_normalize_paciente(spark, df_patient):
     }
 
     # Execute normalization pipeline
-    pipeline = NormalizePipeline(**config)
+    pipeline = DataNormalization(**config)
 
     valid_df, invalid_df = pipeline.normalize_pacientes(df_patient)
 
@@ -177,7 +204,7 @@ def test_normalize_exames(spark, df_exams):
         "curated_path": os.getenv("CURATED_PATH"),
     }
 
-    pipeline = NormalizePipeline(**config)
+    pipeline = DataNormalization(**config)
     valid_df, invalid_df = pipeline.normalize_exames(df_exams)
 
     # Verify that 'DE_RESULTADO' is properly normalized

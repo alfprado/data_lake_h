@@ -1,19 +1,13 @@
 import logging
 import os
-from datetime import datetime
 
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lower, regexp_replace, trim, udf, when
-from pyspark.sql.types import DateType, IntegerType, StringType, StructField, StructType
+from pyspark.sql.functions import col, regexp_replace, udf
+from pyspark.sql.types import StringType
 
 
-class NormalizePipeline:
+class DataNormalization:
     def __init__(self, **kwargs):
-        self.spark = (
-            SparkSession.builder.appName("Data Normalize")
-            .master(kwargs.get("spark_master"))
-            .getOrCreate()
-        )
+        self.spark = kwargs.get("spark")
         self.raw_path = kwargs.get("raw_path")
         self.curated_path = kwargs.get("curated_path")
         self.rejected_path = kwargs.get("rejected_path")
@@ -37,10 +31,12 @@ class NormalizePipeline:
     def normalize_pacientes(self, df):
         # Replace 'MMMM' and 'CCCC' in columns
         df = df.withColumn(
-            "CD_MUNICIPIO", regexp_replace(col("CD_MUNICIPIO"), "MMMM", "HIDEN")
+            "CD_MUNICIPIO",
+            regexp_replace(col("CD_MUNICIPIO"), "MMMM", "HIDEN"),
         )
         df = df.withColumn(
-            "CD_CEPREDUZIDO", regexp_replace(col("CD_CEPREDUZIDO"), "CCCC", "HIDEN")
+            "CD_CEPREDUZIDO",
+            regexp_replace(col("CD_CEPREDUZIDO"), "CCCC", "HIDEN"),
         )
 
         # Filter out rows with null or empty critical fields
@@ -58,13 +54,18 @@ class NormalizePipeline:
         return valid_df, invalid_df
 
     def normalize_exames(self, df):
-
         # Clean 'DE_RESULTADO' using the defined UDF
         df = df.withColumn("DE_RESULTADO", self.clean_text_udf(col("DE_RESULTADO")))
 
         # Filter out rows with null or empty critical fields
         valid_df = df.dropna(
-            subset=["ID_PACIENTE", "DT_COLETA", "DE_ORIGEM", "DE_EXAME", "DE_RESULTADO"]
+            subset=[
+                "ID_PACIENTE",
+                "DT_COLETA",
+                "DE_ORIGEM",
+                "DE_EXAME",
+                "DE_RESULTADO",
+            ]
         )
         valid_df = df.filter(
             (df["ID_PACIENTE"] != "")
@@ -102,7 +103,6 @@ class NormalizePipeline:
             ]
 
             for table in raw_tables:
-
                 logging.info(f"Processing {table} table...")
                 df = self.read_data(os.path.join(self.raw_path, table))
 
@@ -122,22 +122,3 @@ class NormalizePipeline:
         except Exception as e:
             logging.error(f"Error in the normalization pipeline: {e}")
             raise
-        finally:
-            self.spark.stop()
-
-
-if __name__ == "__main__":
-    today = datetime.now()
-
-    config = {
-        "spark_master": os.getenv("SPARK_MASTER"),
-        "raw_path": os.getenv("RAW_PATH"),
-        "curated_path": os.getenv("CURATED_PATH"),
-    }
-
-    try:
-        pipeline = NormalizePipeline(**config)
-        pipeline.normalize()
-    except Exception as e:
-        logging.error(f"Error during pipeline execution: {e}")
-        raise

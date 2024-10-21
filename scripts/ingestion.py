@@ -4,7 +4,6 @@ import shutil
 import zipfile
 from datetime import datetime
 
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit
 
 
@@ -32,15 +31,9 @@ def move_to_history(source_dir, history_dir):
             shutil.move(full_file_name, history_dir)
 
 
-class IngestionPipeline:
+class DataIngestion:
     def __init__(self, **kwargs):
-        self.spark = (
-            SparkSession.builder.appName("Data Ingestion")
-            .config("spark.executor.memory", "4g")
-            .config("spark.driver.memory", "4g")
-            .master(kwargs.get("spark_master"))
-            .getOrCreate()
-        )
+        self.spark = kwargs.get("spark")
         self.stage_path = kwargs.get("stage_path")
         self.raw_path = kwargs.get("raw_path")
         self.history_path = kwargs.get("history_path")
@@ -78,5 +71,6 @@ class IngestionPipeline:
             logging.info("Moving files to history...")
             move_to_history(self.stage_path, self.history_path)
 
-        finally:
-            self.spark.stop()
+        except Exception as e:
+            logging.error(f"Error during data ingestion: {e}")
+            raise
