@@ -8,7 +8,7 @@ RUN apt-get update && \
     apt-get clean
 
 # Install Spark
-RUN wget -qO - https://archive.apache.org/dist/spark/spark-3.5.3/spark-3.5.3-bin-hadoop3.tgz| tar -xz -C /opt/
+RUN wget -O - https://archive.apache.org/dist/spark/spark-3.5.3/spark-3.5.3-bin-hadoop3.tgz| tar -xz -C /opt/
 ENV SPARK_HOME=/opt/spark-3.5.3-bin-hadoop3
 ENV PATH=$PATH:$SPARK_HOME/bin
 

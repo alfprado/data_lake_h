@@ -1,8 +1,15 @@
-**Engenharia de Dados - HIAE: Teste para Seleção de Engenheiro de Dados**
+# Projeto Data Lake - HIAE
 
-**Requisitos do Projeto e Atividades**
+## Visão Geral
+Este projeto simula a ingestão, curadoria, processamento e consumo de dados anonimizados de testes de COVID-19 do Hospital Israelita Albert Einstein. Ele foi projetado seguindo uma arquitetura simplificada de Data Lake como parte de um teste de seleção de engenharia de dados.
 
-Este teste tem como objetivo a aplicação de conhecimentos em engenharia de dados para ingestão, curadoria, processamento e consumo de dados em uma solução Big Data. A arquitetura simplificada do Data Lake foi usada como referência, e as atividades foram divididas em quatro etapas principais: Ingestão, Normalização, Processamento, e Uso dos Dados Transformados.
+## Arquitetura
+O projeto é estruturado em torno de um Data Lake com quatro camadas:
+
+- **Stage**: Armazena os arquivos brutos antes da ingestão.
+- **Raw**: Armazena os arquivos ingeridos no formato Parquet, comprimidos com Snappy.
+- **Curated**: Contém os dados limpos e normalizados após a aplicação de regras de qualidade.
+- **Service**: Disponibiliza os dados para consumo final e análise.
 
 ```mermaid
 flowchart LR
@@ -19,120 +26,127 @@ flowchart LR
     end
 ```
 
-### **Atividade 1: Ingestão**
+## Funcionalidades
+- Ingestão de arquivos CSV brutos para o formato Parquet.
+- Normalização e verificações de qualidade dos dados com Spark.
+- Transformação e agregação de dados.
+- Análise de dados e visualização utilizando Pandas.
 
-**Origem dos Dados**: [Repositório Data Sharing FAPESP](https://repositoriodatasharingfapesp.uspdigital.usp.br/handle/item/98)  
-Pasta de arquivos, com dados anonimizados de pacientes que fizeram teste para COVID-19 a partir de 1/11/2019, compactada em formato zip. Contém 2 arquivos em formato CSV e 1 arquivo em formato XLXS:
-1. Planilha com dados anonimizados sobre pacientes que fizeram teste para o COVID-19 (sorologia ou PCR) no Hospital Israelita Albert Einstein, incluindo: identificador anonimizado do paciente, gênero, país, estado, município e região de residência.
-2. Resultados de exames laboratoriais, contendo, dentre outros, o identificador anonimizado do paciente.
-3. Dicionário de dados: planilha em que cada aba descreve todos os campos das planilhas de Pacientes e de Exames. Pacientes e seus Exames são interligáveis pelo identificador anonimizado do paciente.
+## Instalação
 
-**Entrada**: arquivo zip da origem de dados descrita
+### Pré-requisitos
+Certifique-se de ter as seguintes ferramentas instaladas:
 
-**Atividades**:
-- Criar e organizar as camadas do data lake (stage, raw, curated e service) no sistema de arquivos do seu Sistema Operacional.
-  - Levar em consideração a separação por origem e tabela/arquivo (stage, raw e curated), e também o domínio específico (service).
-- Extração e movimentação de dados: colocar os arquivos CSV na camada stage.
-  - Levar em consideração a data de movimentação.
-- Usando Spark, faça a ingestão na camada raw a partir dos dados que estão na camada stage.
-  - Adicionar um campo `DT_CARGA` de tipo DATE para a data de ingestão.
-  - Os dados na camada Raw devem estar em formato parquet e compressão snappy.
-  - A codificação dos dados deve ser UTF-8.
-  - Criar uma rotina para mover os arquivos CSVs, após a ingestão, para uma pasta de histórico (que inclui a data de movimentação) na camada stage.
+- Python 3.8+
+- Apache Spark 3.0+
+- Java JDK 8 ou superior
+- Docker (para executar o Spark em um ambiente isolado)
 
-**Resultado esperado**:
-- Na camada Stage: uma pasta de histórico (com data de movimentação) que contém os arquivos originais ingeridos na camada Raw.
-- Na camada Raw: arquivos por base, tabela/arquivo em formato parquet, compressão snappy e codificação UTF-8.
+### Configurando o Ambiente
 
-### Atividade 2: Normalização e aplicação de regras de qualidade
+**Clone o Repositório:**
 
-**Entrada**: arquivos parquet de exames e pacientes na camada Raw
-
-**Atividades**:
-- Usando Spark, para cada base/tabela/arquivo normalizar e aplicar regras de qualidade conforme a especificação da Tabela 1.
-- Colocar numa pasta `hot` na camada Curated, os registros normalizados e que passaram as regras de qualidade.
-- Colocar numa pasta `rejected` na camada Curated, os registros que não passaram as regras de qualidade.
-
-**Tabela 1: Regras de normalização e qualidade**
-
-| Tabela/Arquivo | Normalização | Regras de Qualidade |
-| -------------- | ------------ | ------------------- |
-| Pacientes      | - No campo `CD_MUNICIPIO`, converter valores `MMMM` para `HIDEN`.<br>- No campo `CD_CEPREDUZIDO`, converter valores `CCCC` para `HIDEN`. | Campos obrigatórios, não vazios e não NULL: `ID_PACIENTE`, `AA_NASCIMENTO`, `CD_PAIS`, `CD_MUNICIPIO`. |
-| Exames         | - Campo `DE_ANALITO` deve ser de tipo DATE.<br>- No campo `DE_RESULTADO`, converter valores para minúsculo e garantir que cada palavra esteja separada por apenas um espaço (usar UDF para este caso). | Campos obrigatórios, não vazios e não NULL: `ID_PACIENTE`, `DT_COLETA`, `DE_ORIGEM`, `DE_EXAME`, `DE_RESULTADO`. |
-
-**Resultado esperado**:
-- Arquivos parquet com compressão snappy na camada Curated por base e tabela/arquivo.
-- Se os registros passaram as regras de qualidade e não deram erro devem estar na pasta `hot`, caso contrário na pasta `rejected`.
-
-**Diagrama de Normalização e qualidade**
-
-```mermaid
-flowchart LR
-    A[Raw] --> B[Normalizar e Aplicar Regras de Qualidade]
-    B --> C[Registros Validados]
-    B --> D[Registros Rejeitados]
-    C --> E[Pasta Hot]
-    D --> F[Pasta Rejected]
-
-    subgraph "Curated"
-        E
-        F
-    end
+```bash
+git clone https://github.com/alfprado/data_lake_hiae
+cd data_lake_hiae
 ```
 
-### Atividade 3: Transformação e processamento
+**Instale as Dependências do Python:** Certifique-se de ter o `pip` instalado e depois instale os pacotes necessários do Python:
 
-**Entrada**: arquivos parquet de exames e pacientes na camada Curated
+```bash
+pip install -r requirements.txt
+```
 
-**Atividades**:
-- Usando Spark, cruzar os dados de exames e pacientes, das respectivas pasta `hot` na camada Curated, para gerar um novo conjunto de dados e colocar os resultados numa pasta `exames_por_pacientes` na camada Service.
-  - O novo conjunto de dados deve ser gerado cruzando pelo campo `ID_PACIENTE`. A seguir mais detalhes das colunas:
-    - Dos pacientes:
-      - Manter as colunas exceto `AA_NASCIMENTO` e `DT_CARGA`.
-      - Adicionar um campo `VL_IDADE` calculado a partir do campo `AA_NASCIMENTO`.
-    - Dos exames:
-      - Manter todas as colunas exceto `DT_CARGA`.
-    - Particionar pelas colunas `CD_PAIS` e `CD_UF`.
-- Gerar mais um novo conjunto de dados `exames_por_paciente_sp` na camada Service, gerado a partir de `exames_pacientes` para o estado de São Paulo (`CD_UF = 'SP'`).
+**Configure as Variáveis de Ambiente:** Crie um arquivo `.env` no diretório raiz para armazenar os caminhos necessários:
 
-**Resultado esperado**:
-- Arquivos parquet numa pasta `exames_por_pacientes` na camada Service e particionado pelas colunas `CD_PAIS` e `CD_UF`.
-- Arquivos parquet numa pasta `exames_por_pacientes_sp` na camada Service.
+```bash
+ZIP_FILE_PATH=data/source/EINSTEINAgosto.zip
+STAGE_PATH=data/stage
+RAW_PATH=data/raw
+HISTORY_PATH=data/stage/history
+CURATED_PATH=data/curated
+SERVICE_PATH=data/service
+SPARK_MASTER=local[*]
+```
 
-### Atividade 4: Uso dos dados transformados
+**Execute o Spark no Docker:** Caso precise de um cluster Spark, você pode inicializá-lo usando o Docker:
 
-**Entrada**: arquivos parquet da pasta `exames_por_pacientes_sp` na camada Service
+```bash
+docker-compose build
+```
 
-**Atividades**:
-- Usando Pandas e bibliotecas de visualização em Python:
-  - Obter um novo DataFrame com registros que tenham resultados de tipo qualitativo: filtrar pelo campo `DE_RESULTADO` os valores que não sejam numéricos.
-  - A partir do DataFrame anterior, visualizar um histograma mostrando a quantidade (contagem) de registros por `DE_ANALITO` ordenados descendentemente pela quantidade.
-
-**Resultado esperado**:
-- Histograma mostrando quantidade de registros por `DE_ANALITO` a partir dos dados na pasta `exames_por_pacientes_sp` na camada Service.
-
-
-## Como Executar:
-
-### Para executar o docker-compose com ambos os serviços:
-
-Para executar o pipeline principal e gerar os dados:
-
+Para executar o pipeline:
 ```bash
 docker-compose up data_pipeline
 ```
 
-Para executar o script de visualização e gerar o gráfico:
-
+Para executar a análise:
 ```bash
-docker-compose up data_visualization
+docker-compose up data_analysis
 ```
 
-Para executar ambos os serviços juntos:
+## Executando os Testes
+O projeto utiliza o pytest para testes automatizados. Para executar todos os testes:
 
 ```bash
-docker-compose up
+pytest -v
 ```
 
-Após a execução, o gráfico gerado (histogram.png) deve estar disponível no diretório output no host.
+Certifique-se de que todas as variáveis de ambiente estão definidas antes de executar os testes. 
 
+## Estrutura do Projeto
+
+```bash
+data_lake_hiae/
+│
+├── .github/                            # Configurações específicas do Github
+│   └── workflows/                      # Arquivos de workflow (ex. CI/CD)
+│
+├── doc/                                # Documentação do projeto
+│   └── Prova Engenheiro de Dados.pdf   # Instruções e detalhes do teste
+│
+├── scripts/                            # Código-fonte principal do projeto
+│   ├── ingestion.py                    # Lógica para ingestão de dados
+│   ├── normalization.py                # Normalização e regras de qualidade dos dados
+│   ├── transformation.py               # Transformação de dados
+│   ├── analysis.py                     # Análise de dados usando Pandas
+│
+├── tests/                              # Testes de unidade e integração
+│   ├── test_ingestion.py               # Testes para o módulo de ingestão
+│   ├── test_normalization.py           # Testes para o módulo de normalização
+│   ├── test_transformation.py          # Testes para o módulo de transformação
+│   └── conftest.py                     # Configuração dos testes
+│
+├── data/                               # Diretório para armazenamento de arquivos de dados
+│   ├── source/                         # Dados originais e compactados (ex.: arquivos zip, tar)
+│   ├── stage/                          # Dados intermediários, extraídos do estado bruto, mas ainda não totalmente processados
+│   ├── raw/                            # Dados brutos no formato original antes de qualquer transformação
+│   ├── curated/                        # Dados limpos e preparados para consumo (transformados, validados)
+│   └── service/                        # Dados prontos para serem consumidos por serviços (ex.: APIs, sistemas externos)
+│
+├── output/                             # Diretório para armazenamento de resultados e análises geradas
+│   └── histogram.png                   # Arquivo de imagem do histograma gerado nas análises
+│
+├── Dockerfile                          # Configuração para construção da imagem Docker
+├── docker-compose.yml                  # Configuração para orquestração de containers com Docker Compose
+├── .flake8                             # Configurações para o linter Flake8
+├── .gitignore                          # Arquivos e diretórios a serem ignorados pelo Git
+├── .dockerignore                       # Arquivos a serem ignorados na construção do Docker
+├── .env.example                        # Exemplo de variáveis de ambiente para configuração local
+├── .pre-commit-config.yaml             # Configuração de hooks para pré-commit (linter, formatação)
+├── requirements.txt                    # Dependências do Python para produção
+├── requirements-dev.txt                # Dependências do Python para desenvolvimento
+├── pyproject.toml                      # Configurações gerais do projeto (ex. build system, formatação)
+└── README.md                           # Documentação principal do projeto
+
+
+```
+## Próximos passos
+- Melhorias nos testes
+- Adicionar CD
+
+## Instruções de projeto
+[Prova Engenheiro de Dados.pdf](<doc/Prova Engenheiro de Dados.pdf>)
+
+## Licença
+Este projeto está licenciado sob a Licença MIT.

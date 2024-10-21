@@ -72,7 +72,7 @@ def plot_histogram(df_qualitativo):
     plt.xticks(rotation=75, ha="right", fontsize=10)
     plt.yticks(fontsize=12)
     plt.tight_layout()
-    output_path = "output/histogram_updated.png"
+    output_path = "output/histogram.png"
     plt.savefig(output_path)
     logging.info(f"Histogram saved to {output_path}")
 

@@ -16,7 +16,7 @@ services:
       - SERVICE_PATH=/app/data/service
     command: ["main.py", "&&", "touch", "/app/data/finished_pipeline"]
 
-  data_visualization:
+  data_analysis:
     build: .
     volumes:
       - ./data:/app/data
@@ -25,4 +25,4 @@ services:
       - SERVICE_PATH=/app/data/service
     depends_on:
       - data_pipeline
-    command: ["scripts/visualization.py", "--service-path", "/app/data/service"]
+    command: ["scripts/analysis.py", "--service-path", "/app/data/service"]

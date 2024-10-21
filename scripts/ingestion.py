@@ -54,7 +54,7 @@ class DataIngestion:
                 df = (
                     self.spark.read.option("header", "true")
                     .option("sep", "|")
-                    .csv(csv_file_path)
+                    .csv(csv_file_path, header=True, encoding="utf-8")
                 )
 
                 df = add_dt_carga(df, datetime.now().date())
