@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+from datetime import date
 
 import pytest
 from pyspark.sql import Row, SparkSession
@@ -29,22 +30,50 @@ def test_transform_data(spark):
             [
                 Row(
                     ID_PACIENTE="1",
-                    AA_NASCIMENTO=1980,
-                    CD_PAIS="BR",
+                    IC_SEXO="F",
+                    AA_NASCIMENTO="1980",
                     CD_UF="SP",
+                    CD_MUNICIPIO="SÃO PAULO",
+                    CD_CEPREDUZIDO="HIDEN",
+                    CD_PAIS="BR",
+                    DT_CARGA="2024-10-22",
                 ),
                 Row(
                     ID_PACIENTE="2",
-                    AA_NASCIMENTO=1990,
-                    CD_PAIS="BR",
+                    IC_SEXO="M",
+                    AA_NASCIMENTO="1950",
                     CD_UF="RJ",
+                    CD_MUNICIPIO="TRINDADE",
+                    CD_CEPREDUZIDO="HIDEN",
+                    CD_PAIS="BR",
+                    DT_CARGA="2024-10-22",
                 ),
             ]
         )
         df_exames = spark.createDataFrame(
             [
-                Row(ID_PACIENTE="1", EXAME="Blood Test"),
-                Row(ID_PACIENTE="2", EXAME="X-Ray"),
+                Row(
+                    ID_PACIENTE="2",
+                    DT_COLETA="04/06/2020",
+                    DE_ORIGEM="HOSP",
+                    DE_EXAME="Dosagem de Sódio",
+                    DE_ANALITO="Sódio",
+                    DE_RESULTADO="134",
+                    CD_UNIDADE="mEq/L",
+                    DE_VALOR_REFERENCIA="135 a 145",
+                    DT_CARGA=date(2023, 10, 20),
+                ),
+                Row(
+                    ID_PACIENTE="1",
+                    DT_COLETA="04/06/202",
+                    DE_ORIGEM="HOSP",
+                    DE_EXAME="Dosagem de Uréia",
+                    DE_ANALITO="Uréia",
+                    DE_RESULTADO="24",
+                    CD_UNIDADE="mg/dL",
+                    DE_VALOR_REFERENCIA="17 a 49",
+                    DT_CARGA=date(2023, 10, 20),
+                ),
             ]
         )
 
@@ -80,7 +109,22 @@ def test_transform_data(spark):
             df_result = spark.read.parquet(result_path)
             assert df_result.count() > 0, "Transformed DataFrame is empty"
             # Additional assertions to validate schema and data
-            expected_columns = ["ID_PACIENTE", "EXAME"]
+            expected_columns = [
+                "ID_PACIENTE",
+                "IC_SEXO",
+                "CD_UF",
+                "CD_MUNICIPIO",
+                "CD_CEPREDUZIDO",
+                "CD_PAIS",
+                "VL_IDADE",
+                "DT_COLETA",
+                "DE_ORIGEM",
+                "DE_EXAME",
+                "DE_ANALITO",
+                "DE_RESULTADO",
+                "CD_UNIDADE",
+                "DE_VALOR_REFERENCIA",
+            ]
             for column in expected_columns:
                 assert column in df_result.columns, f"Missing expected column: {column}"
         except Exception as e:
