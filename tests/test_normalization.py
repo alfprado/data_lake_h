@@ -94,7 +94,7 @@ def df_exams(spark):
     data = [
         (
             "123",
-            datetime.date(2023, 10, 20),
+            "2023-10-20",
             "HOSP",
             "Hemograma Contagem Auto",
             "Basófilos #",
@@ -105,7 +105,7 @@ def df_exams(spark):
         ),
         (
             "",
-            datetime.date(2023, 10, 20),
+            "2023-10-20",
             "HOSP",
             "Hemograma Contagem Auto",
             "Basófilos #",
@@ -127,7 +127,7 @@ def df_exams(spark):
         ),
         (
             "125",
-            datetime.date(2023, 10, 20),
+            "2023-10-20",
             "",
             "Hemograma Contagem Auto",
             "Basófilos #",
@@ -138,7 +138,7 @@ def df_exams(spark):
         ),
         (
             "126",
-            datetime.date(2023, 10, 20),
+            "2023-10-20",
             "HOSP",
             None,
             "Basófilos #",
@@ -151,7 +151,7 @@ def df_exams(spark):
     schema = StructType(
         [
             StructField("ID_PACIENTE", StringType(), True),
-            StructField("DT_COLETA", DateType(), True),
+            StructField("DT_COLETA", StringType(), True),
             StructField("DE_ORIGEM", StringType(), True),
             StructField("DE_EXAME", StringType(), True),
             StructField("DE_ANALITO", StringType(), True),
@@ -207,9 +207,11 @@ def test_normalize_exames(spark, df_exams):
     pipeline = DataNormalization(**config)
     valid_df, invalid_df = pipeline.normalize_exames(df_exams)
 
-    # Verify that 'DE_RESULTADO' is properly normalized
-    assert valid_df.filter(col("DE_RESULTADO") == "nova coleta").count() == 0
+    # Assert counts for valid and invalid DataFrames
+    assert valid_df.count() == 1
+    assert invalid_df.count() == 4
 
     # Verify that the DataFrame does not contain improperly normalized data
-    assert invalid_df.filter(col("DE_RESULTADO") == "nova  coleta").count() == 0
+    assert valid_df.filter(col("ID_PACIENTE") == "123").count() == 1
+    assert valid_df.filter(col("DE_RESULTADO") == "nova coleta").count() == 1
     assert valid_df.filter(col("DE_RESULTADO") == "nova  coleta").count() == 0

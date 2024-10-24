@@ -39,16 +39,13 @@ class DataNormalization:
             regexp_replace(col("CD_CEPREDUZIDO"), "CCCC", "HIDEN"),
         )
 
-        # Filter out rows with null or empty critical fields
-        valid_df = df.dropna(
-            subset=["ID_PACIENTE", "AA_NASCIMENTO", "CD_PAIS", "CD_MUNICIPIO"]
-        )
         valid_df = df.filter(
-            (df["ID_PACIENTE"] != "")
-            & (df["AA_NASCIMENTO"] != "")
-            & (df["CD_PAIS"] != "")
-            & (df["CD_MUNICIPIO"] != "")
+            (df["ID_PACIENTE"].isNotNull() & (df["ID_PACIENTE"] != ""))
+            & (df["AA_NASCIMENTO"].isNotNull() & (df["AA_NASCIMENTO"] != ""))
+            & (df["CD_PAIS"].isNotNull() & (df["CD_PAIS"] != ""))
+            & (df["CD_MUNICIPIO"].isNotNull() & (df["CD_MUNICIPIO"] != ""))
         )
+
         invalid_df = df.subtract(valid_df)
 
         return valid_df, invalid_df
@@ -57,22 +54,15 @@ class DataNormalization:
         # Clean 'DE_RESULTADO' using the defined UDF
         df = df.withColumn("DE_RESULTADO", self.clean_text_udf(col("DE_RESULTADO")))
 
-        # Filter out rows with null or empty critical fields
-        valid_df = df.dropna(
-            subset=[
-                "ID_PACIENTE",
-                "DT_COLETA",
-                "DE_ORIGEM",
-                "DE_EXAME",
-                "DE_RESULTADO",
-            ]
-        )
         valid_df = df.filter(
-            (df["ID_PACIENTE"] != "")
-            & (df["DT_COLETA"] != "")
-            & (df["DE_ORIGEM"] != "")
-            & (df["DE_EXAME"] != "")
-            & (df["DE_RESULTADO"] != "")
+            (df["ID_PACIENTE"].isNotNull() & (df["ID_PACIENTE"] != ""))
+            & (
+                df["DT_COLETA"].isNotNull()
+                & (df["DT_COLETA"] != "")
+                & (df["DE_ORIGEM"].isNotNull() & (df["DE_ORIGEM"] != ""))
+                & (df["DE_EXAME"].isNotNull() & (df["DE_EXAME"] != ""))
+                & (df["DE_RESULTADO"].isNotNull() & (df["DE_RESULTADO"] != ""))
+            )
         )
 
         # Get the invalid rows by subtracting the valid DataFrame from the original
